@@ -24,6 +24,8 @@ public class MapGenerator : MonoBehaviour {
 	public int seed;
 	public Vector2 offset;
 
+	public bool useFalloffMap;
+
 	public float meshHeightMultiplier;
 	public AnimationCurve meshHeightCurve;
 	
@@ -31,8 +33,14 @@ public class MapGenerator : MonoBehaviour {
 
 	public TerrainType[] regions;
 
+	float[,] falloffMap;
+
 	Queue<MapThreadInfo<MapData>> mapDataThreadInfoQueue = new Queue<MapThreadInfo<MapData>>();
 	Queue<MapThreadInfo<MeshData>> meshDataThreadInfoQueue = new Queue<MapThreadInfo<MeshData>>();
+
+	private void Awake() {
+		falloffMap = FallOffGenerator.GenerateFallOffMap(mapChunkSize);
+	}
 
 	public void DrawMapInEditor() {
 		MapData mapData = GenerateMapData (Vector2.zero);
@@ -100,6 +108,9 @@ public class MapGenerator : MonoBehaviour {
 		Color[] colourMap = new Color[mapChunkSize * mapChunkSize];
 		for (int y = 0; y < mapChunkSize; y++) {
 			for (int x = 0; x < mapChunkSize; x++) {
+				if(useFalloffMap){
+					noiseMap[x,y] = Mathf.Clamp01(noiseMap[x,y] - falloffMap[x,y]);
+				}
 				float currentHeight = noiseMap [x, y];
 				for (int i = 0; i < regions.Length; i++) {
 					if (currentHeight >= regions [i].height) {
@@ -122,6 +133,8 @@ public class MapGenerator : MonoBehaviour {
 		if (octaves < 0) {
 			octaves = 0;
 		}
+
+		falloffMap = FallOffGenerator.GenerateFallOffMap(mapChunkSize);
 	}
 
 	struct MapThreadInfo<T> {
